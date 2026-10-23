@@ -30,6 +30,7 @@ births_tibble |>
   mutate(month = factor(month, levels = 1:12, labels = month.name)) |>
   ggplot(aes(x = date_of_month, y = month, fill = average_births)) +
   geom_tile() +
+  scale_x_continuous(breaks = seq(1, 31, by = 5), limits = c(0.5, 31.5)) +
   scale_y_discrete(limits = rev(month.name)) +
   labs(x = "Day of month", y = "Month", fill = "Mean births")
 ```
@@ -75,8 +76,6 @@ calendar_resid <- births_adjusted |>
   summarise(mean_pct_resid = mean(pct_resid), .groups = "drop") |>
   mutate(calendar_date = as.Date(sprintf("2001-%02d-%02d", month, date_of_month))) |>
   select(calendar_date, month, date_of_month, mean_pct_resid)
-
-print(calendar_resid, n = Inf)
 ```
 
 ```{r}
@@ -87,16 +86,35 @@ holiday_dips <- calendar_resid |>
       calendar_date == as.Date("2001-01-01") ~ "New Year's Day",
       calendar_date == as.Date("2001-07-04") ~ "Independence Day",
       calendar_date == as.Date("2001-12-25") ~ "Christmas"
-    )
+    ),
+    label_date = as.Date(c("2001-02-01", "2001-07-14", "2001-12-12")),
+    label_y = c(-22, -18, -37)
   )
 
 ggplot(calendar_resid, aes(x = calendar_date, y = mean_pct_resid)) +
   geom_hline(yintercept = 0, color = "gray50") +
   geom_line() +
-  geom_text(
+  geom_segment(
     data = holiday_dips,
-    aes(label = holiday),
-    nudge_y = 4
+    aes(
+      x = calendar_date,
+      xend = label_date,
+      y = mean_pct_resid,
+      yend = label_y
+    ),
+    inherit.aes = FALSE,
+    color = "gray50"
+  ) +
+  geom_label(
+    data = holiday_dips,
+    aes(x = label_date, y = label_y, label = holiday),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  scale_x_date(
+    breaks = as.Date(c("2001-01-01", "2001-04-01", "2001-07-01", "2001-10-01")),
+    date_labels = "%b",
+    expand = expansion(mult = c(0.02, 0.02))
   ) +
   labs(x = "Calendar date", y = "Mean residual (% of average births)")
 ```
